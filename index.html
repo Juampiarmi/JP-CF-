@@ -2352,7 +2352,7 @@ function jpLimpiarNombreEj(s){
 <footer class="site-footer">
   <p><b>Coach JP</b> — Programación generada para Juan Pablo Armiñana</p>
   <p>Mesociclo de 4 semanas · Planificación personalizada para Juan Pablo Armiñana</p>
-  <p class="jp-build">build 17/10 18:57</p>
+  <p class="jp-build">build 17/10 19:46</p>
 </footer>
 <div id="guideModal" class="modal-overlay">
   <div class="modal modal-wide">
@@ -7815,10 +7815,12 @@ body.nav-stuck .week-selector-wrap,body.nav-stuck .week-tabs-wrap{box-shadow:0 6
         if(m[2].trim()) out[campo] += (out[campo] ? '\n' : '') + m[2].trim();
         return;
       }
-      var mi = t.match(/^[\s*_>\-\u2013\u2022\u00b7]*(?:[^A-Za-z0-9\u00c0-\u00ff\s\[]{1,6}\s*)?(estrategia(?:\s+de\s+progresi[o\u00f3]n)?|progresi[o\u00f3]n|pacing(?:\s+(?:general|sugerido))?|coaching(?:\s+tips?)?|tips?|foco(?:\s+del\s+(?:coach|bloque))?|criterio(?:\s+del\s+coach)?|objetivo)\s*:\s*(\S.*)$/i);
+      var mi = t.match(/^[\s*_>\-\u2013\u2022\u00b7]*(?:[^A-Za-z0-9\u00c0-\u00ff\s\[]{1,6}\s*)?(estrategia(?:\s+de\s+progresi[o\u00f3]n)?|progresi[o\u00f3]n|pacing(?:\s+(?:general|sugerido))?|coaching(?:\s+tips?)?|tips?(?:\s*\/\s*pautas)?|pautas?(?:\s+t[e\u00e9]cnicas?)?|gesti[o\u00f3]n\s+del\s+tiempo(?:\s*\/\s*transiciones)?|transiciones|foco(?:\s+del\s+(?:coach|bloque))?|criterio(?:\s+del\s+coach)?|cuidado|claves?|errores?\s+comunes|objetivo)\s*:\s*(\S.*)$/i);
       if(mi){
-        var ei = mi[1].toLowerCase(), ci = /objetivo/.test(ei) ? 'objetivo' : (/pacing/.test(ei) ? 'pacing' : 'tips');
-        out[ci] += (out[ci] ? '\n' : '') + mi[2].trim();
+        var ei = mi[1].toLowerCase(), ci = /objetivo/.test(ei) ? 'objetivo' : (/^pacing/.test(ei) ? 'pacing' : 'tips');
+        var txi = mi[2].trim();
+        if(ci === 'tips' && /estrategia|progresi|gesti|transicion|cuidado|errores|claves?/.test(ei)) txi = mi[1].replace(/\s+/g, ' ').toUpperCase() + ': ' + txi;
+        out[ci] += (out[ci] ? '\n' : '') + txi;
         campo = '';
         return;
       }
@@ -33970,6 +33972,16 @@ html body.cf-disc .jp-cfboard .jp-cf-accrow{ background:transparent !important; 
 html body.cf-disc .jp-cfboard .jp-cf-accrow .lb{ color:#FF5500 !important; font-family:'Chakra Petch',sans-serif !important; font-weight:700 !important; }
 html body.cf-disc .tactical-briefing .tb-label, html body.cf-disc .tactical-briefing summary{ color:#E5E5E5 !important; }
 html body.cf-disc .tactical-briefing .tb-chev, html body.cf-disc .gd-card-btn .gcb-chev, html body.cf-disc #hdpGuideSlot .gcb-chev{ color:#FF5500 !important; }
+/* CF = piel de Sports: tarjeta de bloque oscura continua (hairline neutro), sin linea de categoria, identificadores de estacion en naranja */
+html body.cf-disc .block:has(.jp-cfboard){ background:radial-gradient(120% 70% at 50% 0%, rgba(255,85,0,.06), rgba(0,0,0,0) 60%), linear-gradient(rgba(23,23,23,.92), rgba(23,23,23,.82), rgba(10,10,10,.92)) !important; border:.8px solid rgba(38,38,38,.9) !important; border-radius:16px !important; box-shadow:none !important; margin-bottom:16px !important; overflow:visible !important; }
+html body.cf-disc .block:has(.jp-cfboard)::before, html body.cf-disc .block:has(.jp-cfboard)::after{ display:none !important; }
+html body.cf-disc .jp-cfboard{ padding:8px 10px 10px !important; margin:0 0 4px !important; }
+html body.cf-disc .jp-cfboard.jp-cf-fase-strength .jp-cf-rows, html body.cf-disc .jp-cfboard.jp-cf-fase-accessory .jp-cf-rows{ counter-reset:cfest; }
+html body.cf-disc .jp-cfboard.jp-cf-fase-strength .jp-cf-rows > .jp-cf-row:has(> .jp-cf-rn)::before, html body.cf-disc .jp-cfboard.jp-cf-fase-accessory .jp-cf-rows > .jp-cf-row:has(> .jp-cf-rn)::before{ counter-increment:cfest; content:'E' counter(cfest); flex:0 0 auto; align-self:flex-start; margin:6px 8px 0 0; color:#FF5500; font:700 12px/1 'JetBrains Mono',ui-monospace,monospace; letter-spacing:.06em; }
+html body.cf-disc .jp-cfboard .jp-cf-rn{ flex:1 1 auto; min-width:0; }
+html body.cf-disc, html:has(body.cf-disc){ background:#0A0A0A !important; }
+html body.cf-disc .app-frame, html body.cf-disc .app-frame-edge, html body.cf-disc .app-frame-corner{ display:none !important; border:0 !important; box-shadow:none !important; }
+html body.cf-disc #mainContent, html body.cf-disc .main{ padding-bottom:180px !important; }
 /* BRANDPASS_CF:END */
 </style>
 <script id="jpHudTacticoJs">
