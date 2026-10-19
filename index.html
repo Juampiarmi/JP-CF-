@@ -2352,7 +2352,7 @@ function jpLimpiarNombreEj(s){
 <footer class="site-footer">
   <p><b>Coach JP</b> — Programación generada para Juan Pablo Armiñana</p>
   <p>Mesociclo de 4 semanas · Planificación personalizada para Juan Pablo Armiñana</p>
-  <p class="jp-build">build 17/10 20:37</p>
+  <p class="jp-build">build 19/10 01:38</p>
 </footer>
 <div id="guideModal" class="modal-overlay">
   <div class="modal modal-wide">
@@ -3623,15 +3623,15 @@ function playBeep(freq, dur, peakGain, delay, type){
    Eventos: tick (3-2-1), aviso (10 s), mitad (50 %), fin (cambio de fase / fin del descanso), inicio.
 ========================================================= */
 var jpPerfilSonido = (function(){
-  var DEF = 'gong';
+  var DEF = 'premium';
   var LISTA = [
     { id: 'tactico',   lb: 'TÁCTICO / HUD BEEP',    desc: 'Doble beep seco 800→1200 Hz, tipo timer C4. Cuenta 3-2-1 grave y pulso metálico final.' },
     { id: 'comando',   lb: 'COMMAND VOICE / MILITAR', desc: 'Conteo por voz táctica "3, 2, 1… GO!" y "REST!" estilo comando militar.' },
-    { id: 'gong',      lb: 'GONG / RING SUAVE',     desc: 'Tono grave y resonante; relajado para marcar el fin del descanso.' },
-    { id: 'campana',   lb: 'BOX CHIME / CAMPANA',   desc: 'Campana limpia de box, atenuada a un volumen agradable.' },
+    { id: 'premium',   lb: 'APP PREMIUM / CHIME',   desc: 'Pulsos suaves y acorde ascendente al arrancar: el sonido de una app de entrenamiento premium.' },
+    { id: 'boxeo',     lb: 'RING DE BOXEO / CAMPANA', desc: 'Campana de bronce de ring: un golpe al arrancar, tres al terminar y clac de varas en el aviso de 10 s.' },
+    { id: 'navette',   lb: 'TEST DE NAVETTE / BEEP', desc: 'Beeps limpios de 1000 Hz como el Course Navette: pip de cuenta, beep largo al arrancar y triple al cambiar de etapa.' },
     { id: 'silbato',   lb: 'WHISTLE / SILBATO',     desc: 'Silbato metálico tipo Fox 40 de juez de competencia, doble frecuencia.' },
-    { id: 'vibracion', lb: 'VIBRACIÓN ÚNICAMENTE',  desc: 'Solo háptica del dispositivo, sin sonido.' },
-    { id: 'silencio',  lb: 'SILENCIOSO',            desc: 'Sin sonido ni vibración en las alertas del timer.' }
+    { id: 'silencio',  lb: 'SILENCIOSO',            desc: 'Sin sonido en las alertas del timer.' }
   ];
   function clave(){ try{ return (typeof STORAGE_KEY !== 'undefined' ? STORAGE_KEY : 'coachjp') + '_sonido'; }catch(e){ return 'coachjp_sonido'; } }
   function valido(id){ return LISTA.some(function(p){ return p.id === id; }); }
@@ -3685,18 +3685,25 @@ var jpPerfilSonido = (function(){
     osc.start(t0); osc2.start(t0); lfo.start(t0); lfoA.start(t0); n.start(t0);
     osc.stop(t0 + d + 0.05); osc2.stop(t0 + d + 0.05); lfo.stop(t0 + d + 0.05); lfoA.stop(t0 + d + 0.05); n.stop(t0 + d + 0.05);
   }
-  /* gong grave: fundamental + parciales con decaimiento largo */
-  function gong(ctx, d, v, t){
-    [[196, 1], [393.5, .42], [588, .2], [784, .1]].forEach(function(p, i){
-      tono(ctx, { f: p[0], d: d * (i > 1 ? .6 : 1), v: v * p[1], atk: .012, t: t || 0 });
+  /* pluck de app premium: nota con ataque inmediato, octava y un parcial brillante que se apaga rapido */
+  function pluck(ctx, f, d, v, t){
+    tono(ctx, { f: f, d: d, v: v, atk: .004, t: t || 0 });
+    tono(ctx, { f: f * 2, d: d * .6, v: v * .28, atk: .004, t: t || 0 });
+    tono(ctx, { f: f * 3.01, d: d * .35, v: v * .1, tipo: 'triangle', atk: .004, t: t || 0 });
+  }
+  /* campana de ring de boxeo: parciales inarmonicos de bronce, golpe duro y cola larga */
+  function ring(ctx, v, t){
+    [[1, 1, 1.7], [2.4, .62, 1.2], [3.9, .42, .85], [5.7, .26, .5], [8.1, .14, .3]].forEach(function(p){
+      tono(ctx, { f: 760 * p[0], d: p[2], v: v * p[1], atk: .002, t: t || 0 });
     });
   }
-  /* campana de box: parciales inarmónicos con decaimiento medio */
-  function campana(ctx, d, v, f0, t){
-    [[1, 1], [1.5, .45], [2.5, .26], [3.5, .13]].forEach(function(p){
-      tono(ctx, { f: f0 * p[0], d: d * (p[0] > 2 ? .55 : 1), v: v * p[1], atk: .003, t: t || 0 });
-    });
+  /* clac de varas de madera (aviso de 10 s del ring) */
+  function clac(ctx, v, t){
+    tono(ctx, { f: 1900, d: .04, v: v, tipo: 'square', lp: 2600, atk: .001, t: t || 0 });
+    tono(ctx, { f: 950, d: .05, v: v * .8, tipo: 'triangle', atk: .001, t: t || 0 });
   }
+  /* pip limpio del Course Navette */
+  function pip(ctx, f, d, v, t){ tono(ctx, { f: f, d: d, v: v, tipo: 'sine', atk: .01, t: t || 0 }); }
   /* doble beep seco 800 -> 1200 Hz (clic de radio tactica / timer C4) y pulso metalico final de 1760 Hz */
   function c4(c, t){
     tono(c, { f: 800, d: .035, v: .13, tipo: 'square', lp: 4200, atk: .002, t: t || 0 });
@@ -3746,19 +3753,26 @@ var jpPerfilSonido = (function(){
       inicio: function(c){ if(!hablar(PAL[idioma()].go)) metal(c); },
       descanso: function(c){ if(!hablar(PAL[idioma()].rest)) c4(c, 0); }
     },
-    gong: {
-      tick:   function(c){ tono(c, { f: 330, d: .09, v: .16 }); },
-      aviso:  function(c){ tono(c, { f: 262, d: .4, v: .2, atk: .01 }); },
-      mitad:  function(c){ tono(c, { f: 262, d: .3, v: .18, atk: .01 }); tono(c, { f: 262, d: .3, v: .18, atk: .01, t: .24 }); },
-      fin:    function(c){ gong(c, 1.9, .34); },
-      inicio: function(c){ gong(c, 1.0, .26); }
+    premium: {
+      tick:   function(c){ pluck(c, 1319, .12, .11); },
+      aviso:  function(c){ pluck(c, 784, .3, .15); pluck(c, 1047, .3, .15, .12); },
+      mitad:  function(c){ pluck(c, 659, .3, .15); pluck(c, 784, .35, .15, .1); },
+      fin:    function(c){ [523, 659, 784, 1047].forEach(function(f, i){ pluck(c, f, 1.1, .15, i * .03); }); },
+      inicio: function(c){ [523, 659, 784, 1047].forEach(function(f, i){ pluck(c, f, i === 3 ? .8 : .5, i === 3 ? .18 : .15, i * .07); }); }
     },
-    campana: {
-      tick:   function(c){ tono(c, { f: 1320, d: .08, v: .11 }); },
-      aviso:  function(c){ campana(c, .5, .2, 880); },
-      mitad:  function(c){ campana(c, .4, .17, 880); campana(c, .4, .17, 880, .26); },
-      fin:    function(c){ campana(c, 1.3, .26, 880); },
-      inicio: function(c){ campana(c, .8, .2, 988); }
+    boxeo: {
+      tick:   function(c){ clac(c, .12); },
+      aviso:  function(c){ clac(c, .16); clac(c, .16, .16); },
+      mitad:  function(c){ ring(c, .1); },
+      fin:    function(c){ ring(c, .2); ring(c, .2, .34); ring(c, .2, .68); },
+      inicio: function(c){ ring(c, .22); }
+    },
+    navette: {
+      tick:   function(c){ pip(c, 1000, .09, .16); },
+      aviso:  function(c){ pip(c, 880, .14, .18); },
+      mitad:  function(c){ pip(c, 1000, .1, .18); pip(c, 1000, .1, .18, .16); },
+      fin:    function(c){ pip(c, 1000, .16, .2); pip(c, 1000, .16, .2, .26); pip(c, 1000, .16, .2, .52); },
+      inicio: function(c){ pip(c, 1000, .55, .2); }
     },
     silbato: {
       tick:   function(c){ tono(c, { f: 3200, d: .04, v: .09, tipo: 'triangle' }); },
@@ -3772,7 +3786,7 @@ var jpPerfilSonido = (function(){
   function vibrar(ev, sinVib){
     if(actual === 'silencio' || sinVib) return;
     /* los perfiles con sonido conservan la háptica de siempre (tick / inicio / fin); el aviso de 10 s y la mitad solo vibran sin sonido */
-    if(actual !== 'vibracion' && (ev === 'aviso' || ev === 'mitad')) return;
+    if(ev === 'aviso' || ev === 'mitad') return;
     try{ if(navigator.vibrate) navigator.vibrate(VIB[ev]); }catch(e){}
   }
   /* cuenta regresiva: los avisos 'tick' llegan de a uno por segundo (el HUD manda el 3er numero como 'inicio'); se numeran para
@@ -3795,7 +3809,7 @@ var jpPerfilSonido = (function(){
   }
   function reproducir(ev, sinVib){
     vibrar(ev, sinVib);
-    if(actual === 'vibracion' || actual === 'silencio') return;
+    if(actual === 'silencio') return;
     if(isAudioMuted()) return;
     var r = (actual === 'tactico' || actual === 'comando') ? secuencia(ev) : { ev: ev, n: 0 };
     emitir(actual, r.ev, r.n);
@@ -3805,7 +3819,8 @@ var jpPerfilSonido = (function(){
     demoT.forEach(clearTimeout); demoT = [];
     try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){}
     hintFase = '';
-    [['tick', 1, 0], ['tick', 2, 900], ['tick', 3, 1800], ['fin', 0, 2700]].concat(id === 'comando' ? [['descanso', 0, 4000]] : []).forEach(function(p){
+    var sec = (id === 'tactico' || id === 'comando') ? [['tick', 1, 0], ['tick', 2, 900], ['tick', 3, 1800], ['fin', 0, 2700]] : [['tick', 0, 0], ['tick', 0, 900], ['tick', 0, 1800], ['inicio', 0, 2700], ['fin', 0, 4300]];
+    sec.concat(id === 'comando' ? [['descanso', 0, 4000]] : []).forEach(function(p){
       demoT.push(setTimeout(function(){ emitir(id, p[0], p[1]); }, p[2]));
     });
   }
@@ -3855,14 +3870,10 @@ var jpPerfilSonido = (function(){
     var prev = actual;
     actual = id;                       /* preescucha: usa el perfil pedido sin guardarlo */
     try{
-      if(id === 'silencio'){ aviso('SILENCIOSO: las alertas del timer no emiten sonido ni vibración.'); }
-      else if(id === 'vibracion'){
-        if(navigator.vibrate){ navigator.vibrate(VIB.fin); aviso('Vibración enviada.'); }
-        else aviso('Este dispositivo no permite vibrar desde la web (iPhone). En ese caso conviene un perfil con sonido.');
-      } else {
+      if(id === 'silencio'){ aviso('SILENCIOSO: las alertas del timer no emiten sonido.'); }
+      else {
         if(isAudioMuted()) aviso('El sonido está en OFF (botón AUDIO del timer). Activalo para escuchar.');
-        else if(id === 'tactico' || id === 'comando'){ aviso(id === 'comando' ? 'Probando: 3, 2, 1, GO y REST.' : ''); demo(id); }
-        else { aviso(''); emitir(id, 'fin'); }
+        else { aviso(id === 'comando' ? 'Probando: 3, 2, 1, GO y REST.' : 'Probando: cuenta, arranque y final.'); demo(id); }
       }
     }finally{ actual = prev; }
   }
@@ -3898,7 +3909,7 @@ var jpPerfilSonido = (function(){
     probar: probar,
     abrir: abrir,
     silencio: function(){ return actual === 'silencio'; },
-    sinSonido: function(){ return actual === 'vibracion' || actual === 'silencio'; }
+    sinSonido: function(){ return actual === 'silencio'; }
   };
 })();
 window.jpPerfilSonido = jpPerfilSonido;
@@ -9658,8 +9669,66 @@ body.nav-stuck .week-selector-wrap,body.nav-stuck .week-tabs-wrap{box-shadow:0 6
     myoreps: { pill: 'SERIE ACTIVACI\u00d3N', icono: '\u26a1', texto: 'Protocolo Myo-reps: 3 a 5 mini-sets al fallo t\u00e9cnico (RIR 0) con 5 respiraciones de pausa.', ph: '4 mini-sets completados' },
     dropset: { pill: 'CARGA INICIAL', icono: '\ud83d\udcc9', texto: 'Protocolo Drop Set: Descarga inmediata (-20% a -25%) al fallo sin descanso.', ph: '2 bajadas hasta 20kg' }
   };
+  /* DROP SET: tres tarjetas en secuencia (la serie principal y dos bajadas), cada una con su peso x repeticiones al fallo y su check. Reusa la fila
+     nativa (data-set-key / .jp-input-native / .jp-btn-check-native): mismos listeners, mismo setLoadField(), mismo tonelaje. Claves: slot 1 (la de siempre,
+     los registros viejos se conservan), 'd1' y 'd2'. El peso de cada bajada se sugiere solo (-20% de la tarjeta anterior) como placeholder. */
+  function dropRedondeoSB(v){ return Math.round(v * 0.8 * 2) / 2; }
+  function renderRegistroDropsetSB(weekIdx, dayId, blockId, exIdx, unidadSec, refSemanaAnterior){
+    unidadSec = unidadSec || 'reps';
+    var pasos = [
+      { idx: 1,    n: 1, lb: 'SERIE PRINCIPAL',      sub: 'al fallo' },
+      { idx: 'd1', n: 2, lb: '1\u00aa BAJADA \u00b7 DROP 1', sub: '-20% del peso \u00b7 al fallo' },
+      { idx: 'd2', n: 3, lb: '2\u00aa BAJADA \u00b7 DROP 2', sub: '-20% otra vez \u00b7 al fallo' }
+    ];
+    var base = 0, html = '<div class="jp-set-tracker-native jp-set-tracker-tecnica jp-drop-tracker">';
+    pasos.forEach(function(p, i){
+      var key = getLoadKey(weekIdx, dayId, blockId, exIdx, p.idx);
+      var ld = getLoad(key);
+      var prevKg = null, prevSec = null;
+      if(refSemanaAnterior && weekIdx > 0){
+        var pl = getLoad(getLoadKey(weekIdx - 1, dayId, blockId, exIdx, p.idx));
+        if(pl.kg != null && pl.kg !== '') prevKg = pl.kg;
+        if(pl.reps != null && pl.reps !== '') prevSec = pl.reps;
+      }
+      var kgVal = ld.kg != null ? ld.kg : '';
+      var secVal = ld.reps != null ? ld.reps : '';
+      var kgPh = '\u2014';
+      if(kgVal === ''){
+        if(i > 0 && base > 0) kgPh = String(dropRedondeoSB(base));
+        else if(prevKg != null) kgPh = String(prevKg);
+      }
+      var secPh = (secVal === '' && prevSec != null) ? String(prevSec) : '\u2014';
+      var kgNum = parseFloat(String(kgVal).replace(',', '.'));
+      base = kgNum > 0 ? kgNum : (parseFloat(kgPh) || 0);
+      html += '<div class="jp-drop-card" data-drop-step="' + p.n + '"' + (i === pasos.length - 1 ? ' data-drop-last="1"' : '') + '>' +
+          '<div class="jp-drop-cap"><b>' + p.n + '</b> ' + p.lb + ' <small>' + p.sub + '</small></div>' +
+          '<div class="jp-set-row-native' + (ld.done ? ' completed' : '') + '" data-set-key="' + key + '">' +
+            '<div class="jp-set-inputs-group">' +
+              '<input type="number" inputmode="decimal" step="0.5" pattern="[0-9]*" autocomplete="off" enterkeyhint="done" class="jp-input-native jp-val-primary" placeholder="' + kgPh + '" value="' + escSB(kgVal) + '" />' +
+              '<span class="jp-unit">kg</span>' +
+              '<span class="jp-sep">\u00d7</span>' +
+              '<input type="number" inputmode="decimal" step="0.5" pattern="[0-9]*" autocomplete="off" enterkeyhint="done" class="jp-input-native jp-val-secondary" placeholder="' + secPh + '" value="' + escSB(secVal) + '" />' +
+              '<span class="jp-unit">' + unidadSec + '</span>' +
+              '<button type="button" class="jp-btn-check-native' + (ld.done ? ' completed' : '') + '" aria-label="Marcar ' + p.lb + ' completada">\u2713</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    });
+    return html + '<div class="jp-drop-nota">Sin descanso entre bajadas: el reloj arranca al marcar la \u00faltima.</div></div>';
+  }
+  /* al escribir el peso de una tarjeta, la sugerencia de las siguientes se recalcula (-20% de la anterior) */
+  function jpDropSugerirSB(tr){
+    var base = 0;
+    tr.querySelectorAll('.jp-drop-card').forEach(function(c, i){
+      var kg = c.querySelector('.jp-val-primary'); if(!kg) return;
+      var v = parseFloat(String(kg.value).replace(',', '.'));
+      if(i > 0 && !kg.value && base > 0) kg.placeholder = String(dropRedondeoSB(base));
+      base = v > 0 ? v : (parseFloat(kg.placeholder) || 0);
+    });
+  }
   function renderRegistroTecnicaUnicaSB(weekIdx, dayId, blockId, exIdx, tecnica, unidadSec, refSemanaAnterior){
     unidadSec = unidadSec || 'reps';
+    if(tecnica === 'dropset') return renderRegistroDropsetSB(weekIdx, dayId, blockId, exIdx, unidadSec, refSemanaAnterior);
     var proto = PROTOCOLO_TECNICA_SB[tecnica];
     var key = getLoadKey(weekIdx, dayId, blockId, exIdx, 1);
     var ld = getLoad(key);
@@ -10529,11 +10598,13 @@ body.nav-stuck .week-selector-wrap,body.nav-stuck .week-tabs-wrap{box-shadow:0 6
     const tituloBloqueM = String(block.title || '').match(/^(.*?)\s*\(([^)]+)\)\s*$/);
     const tituloBloquePrincipal = tituloBloqueM ? (tituloBloqueM[1].trim() || block.title) : (block.title || '');
     const tituloBloqueEnfasis = tituloBloqueM ? tituloBloqueM[2].trim() : '';
+    /* cabecera limpia: [ BIOMECANICA APLICADA · FUERZA ] // 22 MIN. El titulo grande repetia la categoria: queda en el DOM (lo usa el bloque plegado y
+       "Bloque completado") pero se oculta con CSS. El tiempo sale del "(22 MIN)" del titulo o de la duracion estimada del bloque. */
+    const mMinT = tituloBloqueEnfasis.match(/^(\d+)\s*MIN/i), minutosTag = mMinT ? mMinT[1] : (duracionEstimada || '');
     const html = '<div class="wod-board jp-sb-board" data-sportsboard="' + block.id + '">' +
-        '<div class="jp-sb-tag">[ BIOMEC&Aacute;NICA APLICADA &middot; ' + tagCategoriaSB(block, esCalentamiento) + ' ]</div>' +
+        '<div class="jp-sb-tag">[ BIOMEC&Aacute;NICA APLICADA &middot; ' + tagCategoriaSB(block, esCalentamiento) + ' ]' + (minutosTag ? ' <span class="jp-sb-tmin">// ' + minutosTag + ' MIN</span>' : '') + '</div>' +
         (block.ocultaTituloTablero ? '' : tituloBloqueHtmlSB(tituloBloquePrincipal)) +
         (tituloBloqueEnfasis ? '<div class="jp-block-emphasis">// ' + escSB(tituloBloqueEnfasis.toUpperCase()) + '</div>' : '') +
-        (duracionEstimada ? '<div class="jp-sb-duracion">\u23f1 TIEMPO ESTIMADO: ' + duracionEstimada + ' MINUTOS</div>' : '') +
         filas + chipsVideoSB(videosBloque, busquedasVid) +
         (tieneAcc ?
           '<details class="jp-block-details"><summary class="jp-summary-btn"><svg class="jp-pauta-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2v.2h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg><span>PAUTAS T\u00c9CNICAS &amp; TIPS DEL BLOQUE</span></summary>' +
@@ -10587,6 +10658,7 @@ body.nav-stuck .week-selector-wrap,body.nav-stuck .week-tabs-wrap{box-shadow:0 6
       const row = el.closest('.jp-set-row-native'); if(!row) return;
       const key = row.dataset.setKey; if(!key) return;
       setLoadField(key, esKg ? 'kg' : 'reps', el.value);
+      if(esKg){ const trDrop = row.closest('.jp-drop-tracker'); if(trDrop) jpDropSugerirSB(trDrop); }
       return;
     }
     /* directiva ("Compilación estructurada de Myo-Reps") -- cada input
@@ -10654,6 +10726,7 @@ body.nav-stuck .week-selector-wrap,body.nav-stuck .week-tabs-wrap{box-shadow:0 6
          él, jpArrancarDescansoSetNative()/descansoDe() caían siempre al
          fallback genérico (state.restSec) e ignoraban el "Rest Xs" que el
          coach prescribió línea por línea. */
+      const dropCard = btn.closest('.jp-drop-card');      /* drop set: sin descanso entre bajadas, el reloj arranca con la ultima tarjeta */
       const exWrap = btn.closest('.jp-sb-ex, .jp-sb-subex');
       const restOverride = exWrap ? (exWrap.dataset.restSec === '0' ? -1 : (parseInt(exWrap.dataset.restSec, 10) || 0)) : 0;   /* -1 = "Rest 0s": sin descanso */
       /* directiva maestra ("Botonera rápida de ajuste en descanso") -- la
@@ -10666,7 +10739,7 @@ body.nav-stuck .week-selector-wrap,body.nav-stuck .week-tabs-wrap{box-shadow:0 6
       const nextRow = row.nextElementSibling;
       window.__jpRestKgInput = (nextRow && nextRow.classList && nextRow.classList.contains('jp-set-row-native'))
         ? nextRow.querySelector('.jp-val-primary') : null;
-      if(bl && typeof window.jpArrancarDescansoSetNative === 'function') window.jpArrancarDescansoSetNative(bl, restOverride);
+      if(bl && typeof window.jpArrancarDescansoSetNative === 'function' && !(dropCard && dropCard.getAttribute('data-drop-last') !== '1')) window.jpArrancarDescansoSetNative(bl, restOverride);
     } else {
       try{ beepSetCheck(false); }catch(err){}
     }
@@ -11077,13 +11150,19 @@ body.nav-stuck .week-selector-wrap,body.nav-stuck .week-tabs-wrap{box-shadow:0 6
       var entries;
       try{ entries = window.parsearPizarraSB(lineasBloque); }catch(e){ return; }
       entries.forEach(function(entry, idx){
-        if(entry.tipo === 'simple' && entry.sets){
+        if(entry.tipo === 'simple' && (entry.sets || entry.tecnica === 'dropset')){
           var setsTxt = [];
-          for(var i = 1; i <= entry.sets; i++){
+          for(var i = 1; i <= (entry.sets || 1); i++){
             var ld = getLoad(getLoadKey(weekIdx, day.id, block.id, 'e' + idx, i));
             if(ld && ld.done && numJP(ld.reps) > 0){
               setsTxt.push(lineaSetWA(i, ld));
             }
+          }
+          if(entry.tecnica === 'dropset'){
+            ['d1', 'd2'].forEach(function(ds, di){
+              var ldd = getLoad(getLoadKey(weekIdx, day.id, block.id, 'e' + idx, ds));
+              if(ldd && ldd.done && numJP(ldd.reps) > 0) setsTxt.push('  \u2022 Drop ' + (di + 1) + ': ' + (numJP(ldd.kg) > 0 ? fmtJP(numJP(ldd.kg)) + ' kg \u00d7 ' : '') + fmtJP(numJP(ldd.reps)) + ' reps');
+            });
           }
           if(setsTxt.length) out.push('*' + entry.titulo + '*:\n' + setsTxt.join('\n'));
         } else if(entry.tipo === 'biserie'){
@@ -34106,6 +34185,27 @@ html body.cf-disc .jp-cfboard .jp-cf-rest.running::before{ background:rgba(16,18
 html body.cf-disc .jp-cfboard .jp-cf-rest.running .jp-cf-rest-main{ color:#34D399 !important; font-weight:800 !important; }
 html body.cf-disc .jp-cfboard .jp-cf-rest.running .jp-cf-rest-plus, html body.cf-disc .jp-cfboard .jp-cf-rest.running .jp-cf-rest-x{ background:rgba(6,78,59,.35) !important; border:1px solid rgba(16,185,129,.35) !important; color:#6EE7B7 !important; }
 html body.cf-disc .jp-done-btn.jp-done-foot.on, html body.cf-disc .jp-close-cta.done{ background:rgba(2,44,34,.4) !important; border:1px solid rgba(16,185,129,.6) !important; color:#34D399 !important; font-weight:700 !important; box-shadow:0 0 12px rgba(16,185,129,.25) !important; -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
+/* celeste tactico atenuado (#00B4D8) en las etiquetas superiores de categoria: [ BIOMECANICA APLICADA · FUERZA ] / [ CROSSFIT · ... ] */
+html body.jp-mission:not(.cf-disc) .jp-sb-board .jp-tag-lb, html body.jp-mission:not(.cf-disc) .jp-sb-board .jp-sb-tag{ color:#00B4D8 !important; }
+html body.cf-disc .jp-cf-tag, html body.cf-disc .jp-cf-tag .jp-tag-lb{ color:#00B4D8 !important; }
+/* ---- cabecera de bloque limpia: etiqueta + tiempo, sin el titulo grande repetido (solo se ve con el bloque plegado) ---- */
+html body .jp-sb-board > .jp-sb-title, html body .jp-sb-board > .jp-block-emphasis{ display:none !important; }
+html body .block.jp-fold .jp-sb-board > .jp-sb-title, html body .block.jp-fold .jp-sb-board > .jp-block-emphasis{ display:block !important; }
+.jp-sb-tmin{ white-space:nowrap; opacity:.85; letter-spacing:.14em; }
+/* la etiqueta + el tiempo no se cortan en pantallas angostas: si no entran juntos, el tiempo baja de renglon entero */
+html body .jp-sb-board .jp-tag-row .jp-tag-lb{ white-space:normal !important; flex:1 1 auto !important; min-width:0 !important; overflow:visible !important; }
+html body .jp-sb-board .jp-tag-row{ align-items:flex-start; }
+/* ---- drop set: tarjetas secuenciales ---- */
+.jp-drop-tracker{ gap:0 !important; margin-top:10px; }
+.jp-drop-card{ position:relative; }
+.jp-drop-card + .jp-drop-card{ margin-top:24px; }
+.jp-drop-card + .jp-drop-card::before{ content:'\25BC  SIN DESCANSO'; position:absolute; top:-19px; left:0; right:0; text-align:center; font:600 9.5px/1 'JetBrains Mono',ui-monospace,monospace; letter-spacing:.18em; color:#FF5500; }
+.jp-drop-cap{ display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 8px; margin:0 0 6px 2px; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#00B4D8; }
+.jp-drop-cap b{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:#FF5500; color:#0F0F0F; font-size:10px; letter-spacing:0; }
+.jp-drop-cap small{ flex:1 0 100%; padding-left:26px; color:#8A8A8A; font-size:9.5px; letter-spacing:.08em; text-transform:none; font-weight:500; margin-top:-2px; }
+.jp-drop-card > .jp-set-row-native{ border-left:3px solid #FF5500; justify-content:center; }
+.jp-drop-card > .jp-set-row-native.completed{ border-left-color:#10B981; }
+.jp-drop-nota{ margin-top:10px; text-align:center; font-size:.68rem; color:#8A8A8A; letter-spacing:.04em; }
 /* BRANDPASS_CF:END */
 </style>
 <script id="jpHudTacticoJs">
